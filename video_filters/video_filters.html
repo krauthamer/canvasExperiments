@@ -95,10 +95,10 @@
             filterRed(editedImage3, idx); 
         }
         editedImage4.data = mysobel(currentImg.data, editedImage4.data, imgW, imgH); 
-        ctx.putImageData(editedImage,0,0);
+        ctx.putImageData(editedImage4,0,0);
         ctx2.putImageData(editedImage2,0,0);
         ctx3.putImageData(editedImage3,0,0);
-        ctx4.putImageData(editedImage4,0,0);
+        ctx4.putImageData(editedImage,0,0);
         requestAnimationFrame(draw); 
     } 
 
@@ -112,7 +112,7 @@
 
 
 </script>
-<script src = "/tracking/tracking-min.js"></script>
+<script src = "/video_filters/tracking/tracking-min.js"></script>
 <script src="filters.js"></script>
 
 </html>
