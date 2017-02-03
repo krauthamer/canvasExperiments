@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Photo Filter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <style>
+    #image-container {
+      display: flex;
+    }
+  </style>
+</head>
+
+<body>
+  <div id = "buttons">
+    <span>Upload Image:</span><br/>
+    <input type="file" id="file"/><br/><br>
+    <button id = "normalify">NORMALIFY</button>
+    <button id = "greenify">GREENIFY</button>
+    <button id = "blackAndWhitify">BLACK AND WHITE</button>
+    <button id = "invertify">INVERTIFY</button><br><br>
+    <button id = "removeStroke" onclick = "undoStroke()">Undo Brush Stroke </button>
+    <input id = "strokeWidth" type = "number" value = 3>Choose Brush Stroke Width<br><br>
+    <input id = "text" type = "text" placeholder="add text to bottom"/><br><br>
+  </div>
+
+  <div id="image-container">
+    <canvas id = "cv" width="400" height="400" style = "padding: 10px"></canvas>
+  </div>
+</body>
+
+<script type="text/javascript">
+  //global variable declarations
+  var canvas = document.getElementById("cv"), 
+      ctx = canvas.getContext("2d");
+      ctx.lineWidth = 3;    
+  var filterify = [], 
+      data = [], 
+      tempImageDataArr= [],
+      src = "x.png";
+  var text = "";
+  var mouseDown = false, 
+      mouseOnCanvas = false, 
+      lastX = 0, 
+      lastY = 0, 
+      currX = 0, 
+      currY = 0, 
+      strokeWidth = 3,
+      singleStroke = [],
+      arrayOfBrushStrokes = [];
+
+  drawImage(); 
+
+  function drawImage(){
+    var img = new Image();
+    img.src = src; 
+    img.onload = function() {
+      //ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height); 
+      ctx.createImageData(canvas.width, canvas.height); 
+      data = ctx.getImageData(0,0,canvas.width, canvas.height); 
+      tempImageDataArr = data.data; 
+      //
+      for(var i = 0; i < filterify.length; i++){
+        filterify[i](); 
+      } 
+      data.data = tempImageDataArr;
+      ctx.putImageData(data, 0,0); 
+      ctx.lineWidth = 2; 
+      ctx.fillText(text, canvas.width/2, canvas.height-40)
+      ctx.strokeText(text, canvas.width/2, canvas.height-40);
+      redrawWhatsBeenDrawn(); 
+    };
+  }
+
+  function greenify(){
+    //make filterify greenify the picture 
+    filterify.push(function() {
+      var idx = 36; 
+      while(idx<tempImageDataArr.length) { 
+        for(var i = 1; i<5; i++) {
+          //green is (0, 255, 0, 255), so here we check if we have completed the loop an even number of times, and if so, we change the tempImageDataArray element to 255. If it is odd, we change it to 0. 
+          if(i%2===0) tempImageDataArr[idx]=255; 
+          else tempImageDataArr[idx] = 0;
+          idx++; 
+        }
+        //idx is now at 40 (or a multiple of 40), so to get back to the beginning of index of the next 10th pixel, we need to add 9 pixels worth of indices (36/4 = 9)
+        idx+=36; 
+      }
+    });
+    drawImage(); 
+  }
+
+  function blackAndWhitify(){
+    //make filterify turn photo to greyscale
+    filterify.push(function() {
+      //for each iteration of the for loop, i will represent the 'R' index for each 'RGBA' pixel. We will increment i 4 times each iteration. 
+      for(var i = 0; i < tempImageDataArr.length - 4; i += 4){
+        //to convert to greyscale, we need to average the pixel's RGB values
+        var avg = (tempImageDataArr[i] + tempImageDataArr[i+1] + tempImageDataArr[i+2]) / 3; 
+        //we then change the three rgb values to the average. We leave the alpha as it is
+        for(var j = 0; j < 3; j ++) {
+          tempImageDataArr[i+j] = avg; 
+        }
+      }
+    });
+    drawImage(); 
+  }
+
+  function invertify(){
+    //make filterify invert colors 
+    filterify.push(function() {
+      //for each iteration, we're incrementing i by 4 so we get back to the first of the 4 values in each pixel
+      for(var i = 0; i < tempImageDataArr.length - 4; i += 4) {
+        //we then go through the first three values for each pixel
+        for(var j = 0; j < 3; j++) {
+          //and subtract the value from 255 to get the inverse 
+          tempImageDataArr[i + j] = 255 - tempImageDataArr[i + j]; 
+        }
+      }
+    });
+    drawImage(); 
+  }
+//make filterify do nothing 
+  function normalify(){
+    filterify = []; 
+    drawImage(); 
+  }
+//allow user to upload their own pic 
+  function uploadPic(evt){
+    var file = evt.target.files[0];
+    var reader = new FileReader();
+    reader.onload = function(fileObject) {
+      var data = fileObject.target.result;
+      // save data as global src, which we use to set img.src in drawImage(); 
+      src = data; 
+      drawImage(); 
+    };
+    reader.readAsDataURL(file)
+  }
+
+  function addText(evt){
+    ctx.strokeStyle = "black"; 
+    ctx.fillStyle = "white"; 
+    ctx.textAlign = "center"; 
+    ctx.font = "36px impact"; 
+    text = evt.target.value; 
+    drawImage(); 
+  }
+function mouseDrawingHandler(evt){
+  var type = evt.type; 
+  switch(type){
+    case "mousedown":
+      mouseDown = true; 
+      if(mouseOnCanvas){
+        currX = evt.clientX - canvas.offsetLeft; 
+        currY = evt.clientY - canvas.offsetTop; 
+        lastX = currX;
+        lastY = currY; 
+        singleStroke = []; 
+        singleStroke.push(currX); 
+        singleStroke.push(currY);
+        singleStroke.push(strokeWidth); 
+        drawOnCanvas(); 
+      }
+      break; 
+    case "mouseup":
+      mouseDown = false; 
+      arrayOfBrushStrokes.push(singleStroke); 
+      break; 
+    case "mouseenter":
+      mouseOnCanvas = true; 
+      break;
+    case "mouseout":
+      mouseOnCanvas = false; 
+      mouseDown = false; 
+      //arrayOfBrushStrokes.push(singleStroke); 
+      break;
+    case "mousemove":
+      if(mouseDown && mouseOnCanvas){
+        lastX = currX;
+        lastY = currY; 
+        currX = evt.clientX - canvas.offsetLeft; 
+        currY = evt.clientY - canvas.offsetTop; 
+        singleStroke.push(currX); 
+        singleStroke.push(currY);
+        singleStroke.push(strokeWidth)
+        ctx.lineWidth = strokeWidth; 
+        drawOnCanvas(); 
+      }
+      break;
+  }
+}
+
+  function drawOnCanvas(){
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(currX, currY);
+    ctx.stroke();
+    ctx.closePath();
+  }
+
+  function undoStroke(){
+    arrayOfBrushStrokes.pop();
+    drawImage(); 
+  }
+
+  function redrawWhatsBeenDrawn(){
+    for(var i = 0; i < arrayOfBrushStrokes.length; i++){
+      var tempArr = arrayOfBrushStrokes[i];
+      for(var j = 0; j < tempArr.length; j += 3){
+        if(j===0) {
+          lastX = tempArr[j]; 
+          lastY = tempArr[j+1]; 
+        } else {
+          lastX = currX;
+          lastY = currY; 
+        }
+        currX = tempArr[j];  
+        currY = tempArr[j+1]; 
+        ctx.lineWidth = tempArr[j+2]; 
+        drawOnCanvas(); 
+      }
+    }
+  }
+    
+  //event listeners 
+  var inputText = document.getElementById('text');
+  inputText.oninput = addText; 
+  document.getElementById('file').addEventListener('change', uploadPic, false);
+  document.getElementById('greenify').addEventListener('click', greenify, false);
+  document.getElementById('blackAndWhitify').addEventListener('click', blackAndWhitify, false);
+  document.getElementById('invertify').addEventListener('click', invertify, false);
+  document.getElementById('normalify').addEventListener('click', normalify, false);
+  document.getElementById('strokeWidth').addEventListener('input', function(evt){ strokeWidth = evt.target.value} , false);
+  canvas.addEventListener("mousedown", mouseDrawingHandler, false); 
+  canvas.addEventListener("mouseup", mouseDrawingHandler, false);
+  canvas.addEventListener("mouseenter", mouseDrawingHandler, false);
+  canvas.addEventListener("mouseout", mouseDrawingHandler, false);
+  canvas.addEventListener("mousemove", mouseDrawingHandler, false);
+
+
+
+</script>
+
+

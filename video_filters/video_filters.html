@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Fun Filters</title>
+</head>
+<body>
+    <video id="v" controls loop>
+      <source src="output1.mp4" type="video/mp4">
+    </video>
+    <canvas id="c"></canvas>
+    <canvas id="c2"></canvas>
+    <canvas id="c3"></canvas>
+    <canvas id="c4"></canvas>
+    <br><br>
+    <button id="saveBtn">Save</button>
+</body>
+
+<script>
+    var imgW, imgH;
+    //image buffers 
+    var previousImg,  
+        currentImg, 
+        editedImage, 
+        newArr, 
+        backCanvas, 
+        backctx; 
+        
+    var counter = 0; 
+
+    var v = document.querySelector("#v"), //video element 
+    canvas = document.querySelector("#c"),
+    ctx = canvas.getContext("2d");
+
+    var canvas2 = document.querySelector("#c2"),
+    ctx2 = canvas2.getContext("2d"); 
+    var canvas3 = document.querySelector("#c3"),
+    ctx3 = canvas3.getContext("2d"); 
+    var canvas4 = document.querySelector("#c4"),
+    ctx4 = canvas4.getContext("2d"); 
+
+    document.addEventListener("DOMContentLoaded",function(){
+        backCanvas = document.createElement("canvas");
+        backctx = backCanvas.getContext("2d"); 
+        v.addEventListener('loadedmetadata', function(){ 
+            imgW = this.videoWidth; 
+            imgH = this.videoHeight;
+            this.width = imgW;
+            this.height = imgH;
+            canvas.width = imgW;
+            canvas.height = imgH;
+            canvas2.width = imgW;
+            canvas2.height = imgH;
+            canvas3.width = imgW;
+            canvas3.height = imgH;
+            canvas4.width = imgW;
+            canvas4.height = imgH;
+            backCanvas.width = imgW; 
+            backCanvas.height = imgH; 
+            canvas.getContext('2d').drawImage(v,0,0);
+         });
+
+        //v.addEventListener('resize', function(){ establishSizeAndDraw(this); });
+        v.addEventListener('play',function(){
+            if (v.paused || v.ended)
+                return;
+            //setTimeout(draw,20,v,ctx,canvas.width,canvas.height);
+            draw();
+        });
+
+        v.addEventListener('pause', function(){ 
+            console.log("paused");
+            //console.log(newArr.slice(0,10))
+        });
+
+    });
+
+
+    function draw(){
+        //if there is a current image (meaning we're on the second iteration after we have set a current image), store the current image as the previous image 
+        //draw the image frame grabbed from the video 
+        //condition: always
+        backctx.drawImage(v, 0, 0);
+        ctx2.drawImage(v, 0, 0);
+        currentImg = backctx.getImageData(0,0, imgW, imgH);
+        editedImage = backctx.getImageData(0,0, imgW, imgH);
+        editedImage2 = backctx.getImageData(0,0, imgW, imgH);
+        editedImage3 = backctx.getImageData(0,0, imgW, imgH);
+        editedImage4 = backctx.getImageData(0,0, imgW, imgH);
+        //if we're on the second iteration and beyond...
+        for(var idx = 0; idx < editedImage.data.length; idx += 4){
+            filterGreen(editedImage, idx); 
+            filterBlue(editedImage2, idx); 
+            filterRed(editedImage3, idx); 
+        }
+        editedImage4.data = mysobel(currentImg.data, editedImage4.data, imgW, imgH); 
+        ctx.putImageData(editedImage,0,0);
+        ctx2.putImageData(editedImage2,0,0);
+        ctx3.putImageData(editedImage3,0,0);
+        ctx4.putImageData(editedImage4,0,0);
+        requestAnimationFrame(draw); 
+    } 
+
+    function saveFile() {
+      window.open(document.querySelector('canvas').toDataURL());
+    }
+
+    document.querySelector('button').addEventListener('click', saveFile, false);
+
+
+
+
+</script>
+<script src = "/tracking/tracking-min.js"></script>
+<script src="filters.js"></script>
+
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Detect Movement</title>
+</head>
+<body>
+    <video id="v" width = "200" height= "200" controls loop>
+      <source src="output1.mp4" type="video/mp4">
+    </video>
+    <canvas id="c"></canvas>
+    <canvas id="c2"></canvas>
+    <br><br>
+    <button id="saveBtn">Save</button>
+</body>
+
+<script>
+    var w, h,
+        backCanvas, backctx,
+        draw, 
+        img, 
+        startX, startY, endX, endY, tempCoord, boundingWidth, boundingHeight,
+        mouseDown, mouseOnCanvas; 
+    //image buffers 
+    var previousImg,  
+        currentImg, 
+        editedImage; 
+        
+    var countersame = 0, counterdifferent = 0; 
+
+    v = document.querySelector("#v"); //video element 
+    canvas = document.querySelector("#c");
+    ctx = canvas.getContext("2d");
+    counter = 0; 
+
+
+    document.addEventListener("DOMContentLoaded",function(){
+        backCanvas = document.createElement("canvas");
+        backctx = backCanvas.getContext("2d"); 
+
+        v.addEventListener('loadedmetadata', function(){ 
+            w = this.videoWidth; 
+            h = this.videoHeight;
+            this.width = w;
+            this.height = h;
+            canvas.width = w;
+            canvas.height = h;
+            backCanvas.width = w; 
+            backCanvas.height = h; 
+            canvas.getContext('2d').drawImage(v,0,0);
+         });
+        //v.addEventListener('resize', function(){ establishSizeAndDraw(this); });
+        v.addEventListener('play',function(){
+            if (v.paused || v.ended)
+                return;
+            //setTimeout(draw,20,v,ctx,canvas.width,canvas.height);
+            draw();
+        });
+        v.addEventListener('pause', function(){ 
+            console.log("hi"); 
+        });
+    });
+
+    function establishSizeAndDraw(video){
+        w = video.videoWidth; 
+        h = video.videoHeight;
+        video.width = w;
+        video.height = h;
+        canvas.width = w;
+        canvas.height = h;
+        backCanvas.width = w; 
+        backCanvas.height = h; 
+        canvas.getContext('2d').drawImage(v,0,0);
+    }
+
+    function make2DArray(arr){
+        var subArrLen = w * 4; 
+        var tempArr = []; 
+        var twoDimensionalDataArray = []; 
+        for (var idx = 0; idx < arr.length; idx += subArrLen){
+            tempArr = arr.slice(idx, idx+subArrLen); 
+            twoDimensionalDataArray.push(tempArr); 
+        }
+        //test that we are creating the correct arrays
+        // if(counter===0){
+        //     console.log("actual height: " + h + ", array length: " + twoDimensionalDataArray.length);
+        //     console.log("first row: " + arr.slice(subArrLen, subArrLen*2));
+        //     console.log("first array: " + twoDimensionalDataArray[1]);
+        // }
+        //     counter++;
+        return twoDimensionalDataArray; 
+    }
+
+
+    function draw(){
+        //if there is a current image (meaning we're on the second iteration after we have set a current image), store the current image as the previous image 
+        if(currentImg) previousImg = currentImg; 
+        //draw the image frame grabbed from the video 
+        //condition: always
+        backctx.drawImage(v, 0, 0);
+        //set current image to current frame data
+        //condition: always
+        currentImg = backctx.getImageData(0,0, w, h);
+        //make a copy of the current image 
+        //condition: always 
+        editedImage = backctx.getImageData(0,0, w, h);
+        //if we're on the second iteration and beyond...
+        if(previousImg){
+            var currData = backctx.getImageData(0,0, w, h).data; 
+            var prevData = previousImg.data; 
+            var drawImgData = editedImage.data; 
+            
+            var arrRowWidth = w*4; 
+            
+            for(var down = 0; down < h; down++) { 
+                for(var across = 0; across < arrRowWidth; across+=4) {
+                    
+                    var newGreyScale = 0; 
+                    var oldGreyScale = 0; 
+
+                    for(var i = 0; i < 4; i++){
+                        newGreyScale += currData[down * arrRowWidth + across + i]; 
+                        oldGreyScale += prevData[down * arrRowWidth + across + i];
+                    }
+
+                    newGreyScale = newGreyScale/4; 
+                    oldGreyScale = oldGreyScale/4; 
+
+                    if((newGreyScale - 30 > oldGreyScale) || (newGreyScale + 30 < oldGreyScale))
+                        currData[down * arrRowWidth + across] = 255;
+                   
+                    for(var i = 0; i < 4; i++){
+                        drawImgData[down*arrRowWidth + across + i] = currData[down * arrRowWidth + across + i]; 
+                    }
+                }
+            }
+            editedImage.data = drawImgData; 
+        }
+        ctx.clearRect(0,0,w,h); 
+        ctx.putImageData(editedImage,0,0);
+        requestAnimationFrame(draw); 
+    } 
+
+
+    function saveFile() {
+      window.open(document.querySelector('canvas').toDataURL());
+    }
+    document.querySelector('button').addEventListener('click', saveFile, false);
+
+</script>
+<script src = "/tracking/tracking-min.js"></script>
+
+</html>

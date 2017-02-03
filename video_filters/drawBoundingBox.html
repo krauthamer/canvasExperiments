@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <canvas id="c" height="320" width="240"></canvas>
+    <video id="v" width="320" height="240" controls loop>
+      <source src="output1.mp4" type="video/mp4">
+    </video>
+      <button id="saveBtn">Save</button>
+</body>
+    <script>
+    var v, 
+        canvas, ctx, 
+        draw, 
+        img, 
+        startX, startY, endX, endY, tempCoord, boundingWidth, boundingHeight,
+        mouseDown, mouseOnCanvas; 
+        
+        v = document.querySelector("#v"); //video element 
+        canvas = document.querySelector("#c");
+        ctx = canvas.getContext("2d");
+
+        document.addEventListener("DOMContentLoaded",function(){
+
+
+            v.addEventListener('loadedmetadata', function(){
+                canvas.width = this.videoWidth;
+                canvas.height = this.videoHeight;
+            });
+
+            draw = function(){
+                canvas.getContext('2d').drawImage(v,0,0);
+            }
+
+            v.addEventListener('play',function(){
+                if (v.paused || v.ended) return;
+                draw();
+            });
+
+            canvas.addEventListener('click', function(e){
+
+                // img = ctx.getImageData(0,0,canvas.width, canvas.height);
+                // var rect = canvas.getBoundingClientRect();
+                // var mouse_canvas_x = Math.round((e.clientX-rect.left)/(rect.right-rect.left)*canvas.width)
+                // var mouse_canvas_y = Math.round((e.clientY-rect.top)/(rect.bottom-rect.top)*canvas.height)
+
+                // X = e.clientX * 4 - rect.left*4;
+                // Y = (e.clientY-rect.top);
+                // Y=(640*4)*Y;
+                // for(var i=0;i<100;i=i+4){
+                //  img.data[(X + Y)+i] = 255; //sets R
+                //  img.data[(X + Y)+1+i] = 0; //sets R
+                //  img.data[(X + Y)+2+i] = 0; //sets R
+                //  img.data[(X + Y)+3+i] = 255;
+                // }
+
+                // //console.log("change img.data", img.data);
+                // //redraw this onto the screen
+                // ctx.putImageData(img,0,0);
+                // var verifyImg = ctx.getImageData(0,0,canvas.width,canvas.height);
+                //console.log("verifyImg: "+verifyImg.data.slice((X)*(Y),X*Y+20));
+            });
+        });
+
+        canvas.addEventListener("mousedown", function(evt) {
+            startX = evt.clientX - canvas.offsetLeft; 
+            startY = evt.clientY - canvas.offsetTop; 
+            console.log("* Upper left x and y: (" + startX + ", " + startY + ")");
+            //mouseDown = true; 
+
+        }); 
+        
+        canvas.addEventListener("mouseup", function(evt) {
+            endX = evt.clientX - canvas.offsetLeft; 
+            endY = evt.clientY - canvas.offsetTop; 
+            console.log("** lower right x and y: (" + endX + ", " + endY + ")");
+            boundingWidth = endX - startX;
+            boundingHeight = endY - startY; 
+            if(boundingWidth < 0) {
+                tempCoord = endX; 
+                endX = startX; 
+                startX = tempCoord; 
+            }
+            if(boundingHeight < 0) {
+                tempCoord = endY; 
+                endY = startY; 
+                startY = tempCoord;  
+            }
+            console.log("*** Bounding height and width: " + boundingWidth + " X " + boundingHeight);
+            ctx.strokeStyle = "red"; 
+            ctx.lineWidth = 4; 
+            ctx.strokeRect(startX, startY, Math.abs(boundingWidth), Math.abs(boundingHeight));
+
+            //img = ctx.getImageData(0,0,canvas.width, canvas.height);
+            
+            drawBoundingBox(evt); 
+
+        });
+
+    function drawBoundingBox(){
+        img = ctx.getImageData(0,0,canvas.width, canvas.height);
+        var dimensions = canvas.getBoundingClientRect();
+        console.log(img.data.length); 
+        //console.log("**** Drawing x and y: (" + X + ", " + Y + ")");
+        startIdx = (((startY - 1) * canvas.width) + startX) * 4; 
+        console.log(canvas.width); 
+        console.log(startIdx); 
+        for(var i = startIdx; i < (startIdx + (boundingWidth * 4)); i += 4) { 
+            img.data[i] = 255; 
+            img.data[i+canvas.width*4*boundingHeight] = 255;
+            img.data[i+1] = 0; 
+            img.data[i+canvas.width*4*boundingHeight] = 0;
+            img.data[i+2] = 0; 
+            img.data[i+canvas.width*4*boundingHeight] = 0;
+            img.data[i+3] = 255; 
+            img.data[i+canvas.width*4*boundingHeight] = 255;
+        }
+        for(var j = startIdx; j < (startIdx + (boundingHeight * 4 * canvas.width)); j += (canvas.width*4) ) { 
+            img.data[j] = 255; 
+            img.data[j+4*boundingWidth] = 255;
+            img.data[i+1] = 0; 
+            img.data[j+4*boundingWidth] = 0;
+            img.data[i+2] = 0; 
+            img.data[j+4*boundingWidth] = 0;
+            img.data[i+3] = 255; 
+            img.data[j+4*boundingWidth] = 255;
+        }
+
+        //console.log("change img.data", img.data);
+        //redraw this onto the screen
+        ctx.putImageData(img,0,0);
+        var verifyImg = ctx.getImageData(0,0,canvas.width,canvas.height);
+        //console.log("verifyImg: "+verifyImg.data.slice((X)*(Y),X*Y+20));
+    }
+    function saveFile() {
+      window.open(document.querySelector('canvas').toDataURL());
+    }
+        document.querySelector('button').addEventListener('click', saveFile, false);
+
+    </script>
+
+</html>
