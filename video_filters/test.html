@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <canvas id="c"></canvas>
+    <br><br>
+    <button id="saveBtn">Save</button>
+</body>
+<script>
+var enteringInfo = false;
+var inputs = []; 
+
+var canvas = document.getElementById('c'),
+    ctx = canvas.getContext('2d'),
+    font = '14px sans-serif',
+    hasInput = false;
+
+canvas.onclick = function(evt) {
+    if (hasInput) return;
+    addInput(evt.clientX, evt.clientY);
+}
+
+function addInput(x, y) {
+    
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.style.position = 'fixed';
+    input.style.left = x + 'px';
+    input.style.top = y + 'px';
+    input.onkeyup = handleEnter;
+    
+    document.body.appendChild(input);
+
+    input.focus();
+    
+    hasInput = true;
+}
+
+function handleEnter(evt) {
+    if (evt.keyCode === 13) {
+        inputs.push(this.value); 
+        document.body.removeChild(this);
+        hasInput = false;
+    }
+}
+
+function saveFile() {
+    window.open(document.querySelector('canvas').toDataURL());
+}
+document.querySelector('button').addEventListener('click', saveFile, false);
+
+</script>
+<link href="lib/Font-Awesome/css/font-awesome.min.css" rel="stylesheet">
+<link href="lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
+
+<script src = "lib/jquery/dist/jquery.min.js"></script>
+<script src = "lib/CanvasInput/CanvasInput.js"></script>
+<script src = "lib/bootstrap/dist/js/bootstrap.min.js"></script>
+
+</html>

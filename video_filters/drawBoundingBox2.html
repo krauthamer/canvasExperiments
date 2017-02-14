@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Draw Bounding Box</title>
+</head>
+
+<body>
+    <div class = "container">
+    <div id = "can-placeholder"><canvas id="c"></canvas>
+    <br>
+    <a class="btn btn-lg btn-danger" onclick = "undoBox()" href="#"><i class="fa fa-undo fa-2x" aria-hidden="true"></i> </a>
+    <a class="btn btn-lg btn-success" onclick = "redoBox()" href="#"><i class="fa fa-repeat fa-2x" aria-hidden="true"></i> </a>
+    <br><br>
+    <a href="#" class="btn btn-lg btn-primary" id="saveBtn" onclick = "saveFile()"><span class="glyphicon glyphicon-floppy-save"></span> SAVE</a>
+    <br>
+    <br><video id="v" controls loop>
+      <source src="output1.mp4" type="video/mp4">
+    </video>
+    </div>
+</body>
+
+<script>
+
+var v, 
+    canvas, ctx, 
+    draw, 
+    img, 
+    startX, startY, boundingWidth, boundingHeight,
+    mouseDown, 
+    input; 
+
+var boundingBoxes = [], 
+    removedBoundingBoxes = [], 
+    tags = [], 
+    removedTags = []; 
+
+var hasInput = false; 
+        
+v = document.querySelector("#v"); //video element 
+canvas = document.querySelector("#c");
+ctx = canvas.getContext("2d");
+
+document.addEventListener("DOMContentLoaded",function(){
+
+    v.addEventListener('loadedmetadata', function(){
+        canvas = document.querySelector("#c");
+        ctx = canvas.getContext("2d");
+        canvas.width = this.videoWidth;
+        canvas.height = this.videoHeight;
+        canvas.getContext('2d').drawImage(v,0,0);
+    });
+
+    draw = function(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(v,0,0);
+    }
+
+    v.addEventListener('pause',function(){
+        setTimeout(draw,20,v,ctx,canvas.width,canvas.height);
+    });
+});
+
+canvas.addEventListener("mousedown", function(evt) {
+    startX = evt.clientX - canvas.offsetLeft; 
+    startY = evt.clientY - canvas.offsetTop; 
+    console.log("* Upper left x and y: (" + startX + ", " + startY + ")");
+    mouseDown = true; 
+}); 
+
+canvas.addEventListener("mousemove", function(evt){
+    if(mouseDown == true) {
+        var tempEndX = evt.clientX - canvas.offsetLeft; 
+        var tempEndY = evt.clientY - canvas.offsetTop; 
+        drawBox(tempEndX, tempEndY); 
+    }
+});
+
+canvas.addEventListener("mouseout", function(evt){
+    if(mouseDown == true){
+        mouseDown = false; 
+        var endX = evt.clientX - canvas.offsetLeft; 
+        var endY = evt.clientY - canvas.offsetTop; 
+        drawBox(endX, endY)
+    }
+});
+
+canvas.addEventListener("mouseup", function(evt) {
+    if(mouseDown == true) {
+        mouseDown = false; 
+        var endX = evt.clientX - canvas.offsetLeft; 
+        var endY = evt.clientY - canvas.offsetTop; 
+        drawBox(endX, endY)
+        addInput(endX, endY); 
+    }
+});
+
+input = document.createElement('input');
+
+function addInput(x, y) {
+    
+    input.type = 'text';
+    input.style.position = 'fixed';
+    input.style.left = (x+canvas.offsetLeft) + 'px';
+    input.style.top = (y+canvas.offsetTop) + 'px';
+    input.onkeyup = handleEnter;
+    input.placeholder = "enter tag";
+    
+    document.body.appendChild(input);
+
+    input.focus();
+    
+    hasInput = true;
+}
+
+function handleEnter(evt) {
+    if (evt.keyCode === 13) {
+        tags.push(this.value); 
+        this.value = ""; 
+        document.body.removeChild(this);
+        hasInput = false;
+    }
+}
+
+function drawBox(x2, y2){
+    draw(); 
+    for(var i = 0; i<boundingBoxes.length; i++){
+        var coords = boundingBoxes[i];
+        ctx.strokeRect(coords[0], coords[1], coords[2], coords[3]);   
+    }
+    ctx.strokeStyle = "red"; 
+    ctx.lineWidth = 2; 
+    //console.log("** lower right x and y: (" + x2 + ", " + y2 + ")");
+    boundingWidth = x2 - startX;
+    boundingHeight = y2 - startY; 
+    var alternativeX = startX;
+    var alternativeY = startY; 
+    if(boundingWidth < 0) {
+        alternativeX = x2
+    }
+    if(boundingHeight < 0) {
+        alternativeY = y2
+    }
+    ctx.strokeRect(alternativeX, alternativeY, Math.abs(boundingWidth), Math.abs(boundingHeight));   
+    //console.log("*** Bounding height and width: " + boundingWidth + " X " + boundingHeight);
+    if(mouseDown == false) {
+        boundingBoxes.push([alternativeX, alternativeY, Math.abs(boundingWidth), Math.abs(boundingHeight)]);
+        removedBoundingBoxes = []; 
+        input.value = "";
+    }
+}
+
+function undoBox(){
+    if(boundingBoxes.length > 0) {
+        removedBoundingBoxes.push(boundingBoxes.pop()); 
+        removedTags.push(tags.pop()); 
+        input.value = tags[tags.length-1]; 
+        redrawBoxes(); 
+    }
+}
+
+function redoBox(){
+    if(removedBoundingBoxes.length > 0) {
+        boundingBoxes.push(removedBoundingBoxes.pop()); 
+        tags.push(removedTags.pop()); 
+        input.value = tags[tags.length-1];
+        redrawBoxes(); 
+    }
+}
+
+function redrawBoxes(){
+    draw(); 
+    var lastX, lastY; 
+    for(var i = 0; i<boundingBoxes.length; i++){
+        var coords = boundingBoxes[i];
+        ctx.strokeRect(coords[0], coords[1], coords[2], coords[3]);
+        lastX = coords[0]+coords[2];
+        lastY = coords[1]+coords[3];   
+    }
+    if(boundingBoxes.length > 0) addInput(lastX, lastY);
+    else {
+        var inputBox = document.querySelector('input'); 
+        inputBox.value = ""; 
+        document.body.removeChild(inputBox);
+        hasInput = false;
+    }
+}
+
+function saveFile() {
+  window.open(document.querySelector('canvas').toDataURL());
+}
+
+document.getElementById('saveBtn').addEventListener('click', saveFile, false);
+
+</script>
+
+<link href="lib/Font-Awesome/css/font-awesome.min.css" rel="stylesheet">
+<link href="lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
+
+<script src = "lib/jquery/dist/jquery.min.js"></script>
+<script src = "lib/CanvasInput/CanvasInput.js"></script>
+<script src = "lib/bootstrap/dist/js/bootstrap.min.js"></script>
+
+</html>

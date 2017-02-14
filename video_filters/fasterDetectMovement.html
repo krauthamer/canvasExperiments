@@ -6,7 +6,7 @@
     <title>Detect Movement</title>
 </head>
 <body>
-    <video id="v" width = "200" height= "200" controls loop>
+    <video id="v" controls loop>
       <source src="output1.mp4" type="video/mp4">
     </video>
     <canvas id="c"></canvas>
@@ -27,7 +27,7 @@
         currentImg, 
         editedImage; 
         
-    var countersame = 0, counterdifferent = 0; 
+    var countersame = 0, counterdifferent = 0, notReadyToSaveSemaphore = true; 
 
     v = document.querySelector("#v"); //video element 
     canvas = document.querySelector("#c");
@@ -52,46 +52,15 @@
          });
         //v.addEventListener('resize', function(){ establishSizeAndDraw(this); });
         v.addEventListener('play',function(){
-            if (v.paused || v.ended)
-                return;
-            //setTimeout(draw,20,v,ctx,canvas.width,canvas.height);
             draw();
         });
         v.addEventListener('pause', function(){ 
+            //figure out why it's not drawing edited image. 
+            ctx.clearRect(0,0,w,h); 
+            ctx.putImageData(editedImage,0,0);
             console.log("hi"); 
         });
     });
-
-    function establishSizeAndDraw(video){
-        w = video.videoWidth; 
-        h = video.videoHeight;
-        video.width = w;
-        video.height = h;
-        canvas.width = w;
-        canvas.height = h;
-        backCanvas.width = w; 
-        backCanvas.height = h; 
-        canvas.getContext('2d').drawImage(v,0,0);
-    }
-
-    function make2DArray(arr){
-        var subArrLen = w * 4; 
-        var tempArr = []; 
-        var twoDimensionalDataArray = []; 
-        for (var idx = 0; idx < arr.length; idx += subArrLen){
-            tempArr = arr.slice(idx, idx+subArrLen); 
-            twoDimensionalDataArray.push(tempArr); 
-        }
-        //test that we are creating the correct arrays
-        // if(counter===0){
-        //     console.log("actual height: " + h + ", array length: " + twoDimensionalDataArray.length);
-        //     console.log("first row: " + arr.slice(subArrLen, subArrLen*2));
-        //     console.log("first array: " + twoDimensionalDataArray[1]);
-        // }
-        //     counter++;
-        return twoDimensionalDataArray; 
-    }
-
 
     function draw(){
         //if there is a current image (meaning we're on the second iteration after we have set a current image), store the current image as the previous image 
@@ -140,15 +109,25 @@
         ctx.clearRect(0,0,w,h); 
         ctx.putImageData(editedImage,0,0);
         requestAnimationFrame(draw); 
+        notReadyToSaveSemaphore = false; 
+
     } 
 
 
     function saveFile() {
-      window.open(document.querySelector('canvas').toDataURL());
+        if(notReadyToSaveSemaphore){
+            alert("operation in progress. Wait to save."); 
+            return;
+        }
+        window.open(document.querySelector('canvas').toDataURL());
     }
     document.querySelector('button').addEventListener('click', saveFile, false);
 
 </script>
+<link href="lib/Font-Awesome/css/font-awesome.min.css" rel="stylesheet">
+<link href="lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
 <script src = "/tracking/tracking-min.js"></script>
-
+<script src = "lib/jquery/dist/jquery.min.js"></script>
+<script src = "lib/CanvasInput/CanvasInput.js"></script>
+<script src = "lib/bootstrap/dist/js/bootstrap.min.js"></script>
 </html>
